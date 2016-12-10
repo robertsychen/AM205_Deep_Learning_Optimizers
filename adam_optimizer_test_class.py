@@ -106,7 +106,7 @@ class AdamOptimizerTest(optimizer.Optimizer):
   def _apply_dense(self, grad, var):
     m = self.get_slot(var, "m")
     v = self.get_slot(var, "v")
-    return training_ops.apply_adam(
+    x = training_ops.apply_adam(
         var, m, v,
         math_ops.cast(self._beta1_power, var.dtype.base_dtype),
         math_ops.cast(self._beta2_power, var.dtype.base_dtype),
@@ -115,6 +115,8 @@ class AdamOptimizerTest(optimizer.Optimizer):
         math_ops.cast(self._beta2_t, var.dtype.base_dtype),
         math_ops.cast(self._epsilon_t, var.dtype.base_dtype),
         grad, use_locking=self._use_locking).op
+    print(x)
+    return x
 
   def _apply_sparse(self, grad, var):
     beta1_power = math_ops.cast(self._beta1_power, var.dtype.base_dtype)

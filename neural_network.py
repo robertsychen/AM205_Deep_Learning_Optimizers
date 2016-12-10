@@ -2,6 +2,10 @@ import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
 import copy
+from adam_optimizer_test_class import AdamOptimizerTest
+from optimizers.gradient_descent import GradientDescentOptimizerTest
+from optimizers.bfgs_test_class import BfgsOptimizer
+from optimizers.gradient_descent_op import GradientDescentOpt
 
 #note: specifically for image classification, can generalize if we deem necessary
 #makes various assumptions about architecture, can alter class as necessary later
@@ -76,7 +80,8 @@ class NeuralNetwork(object):
             
             #Select which optimizer to use.
             if optimizer_type == 'GradientDescent':
-                self.optimizer = tf.train.GradientDescentOptimizer(optimizer_params['learning_rate']).minimize(self.loss)
+                # self.optimizer = GradientDescentOptimizerTest(optimizer_params['learning_rate']).minimize(self.loss)
+                self.optimizer = GradientDescentOpt(loss=self.loss, learning_rate=0.5, min_step=0.01)
             elif optimizer_type == 'Adam':
                 self.optimizer = tf.train.AdamOptimizer().minimize(self.loss)
             elif optimizer_type == 'AdamTest': #does the same thing as Adam, but is implemented outside of TensorFlow library
@@ -92,13 +97,19 @@ class NeuralNetwork(object):
         #currently computes how the validation set is doing over time as well
         #could add functionality to turn this off        
         with tf.Session(graph=self.graph) as session:
+            # for var in tf.trainable_variables():
+            #     print var
+            # tf.variables_initializer(tf.trainable_variables()).run(session=session)
             tf.initialize_all_variables().run(session=session)
             for step in range(num_steps):
                 index_subset = np.random.choice(self.train_labels.shape[0], size=self.batch_size)
                 batch_data = self.train_dataset[index_subset, :]
                 batch_labels = self.train_labels[index_subset, :]
                 feed_dict = {self.tf_train_dataset : batch_data, self.tf_train_labels : batch_labels}
-                _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
+
+                self.optimizer.minimize(session)
+                o, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
+                # print o
                 if verbose and (step % (num_steps/10) == 0):
                     print("Minibatch loss at step %d: %f" % (step, l))
                     print("Minibatch accuracy: %.1f%%" % self.__accuracy(predictions, batch_labels))
