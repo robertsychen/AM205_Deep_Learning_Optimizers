@@ -108,7 +108,9 @@ class NeuralNetwork(object):
         #could add functionality to turn this off        
 
         def __performance_update_printer(l, predictions):
-            if verbose and (step % (max(1,num_steps/10)) == 0):
+            #if verbose and (step % (max(1,num_steps/10)) == 0):
+            if verbose:
+                print ('uh')
                 print("Minibatch loss at step %d: %f" % (step, l))
                 print("Minibatch accuracy: %.1f%%" % self.__accuracy(predictions, batch_labels))
                 print("Validation accuracy: %.1f%%" % self.__accuracy(self.valid_prediction.eval(), self.valid_labels))
