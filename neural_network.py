@@ -2,10 +2,9 @@ import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
 import copy
-from adam_optimizer_test_class import AdamOptimizerTest
-from optimizers.gradient_descent import GradientDescentOptimizerTest
-from optimizers.bfgs_test_class import BfgsOptimizer
 from optimizers.gradient_descent_op import GradientDescentOpt
+from optimizers.bfgs_op import BfgsOpt
+from optimizers.conjugate_gradient_op import ConjugateGradientOpt
 
 #note: specifically for image classification, can generalize if we deem necessary
 #makes various assumptions about architecture, can alter class as necessary later
@@ -34,6 +33,7 @@ class NeuralNetwork(object):
         self.valid_labels = valid_labels
         self.optimizer_type = optimizer_type #string name of optimizer being used
         self.optimizer_params = optimizer_params #dictionary of any parameters needed to run the given optimizer
+        self.is_custom_optimizer = None #whether optimizer is built in or is a custom one based on ExternalOptimizerInterface; filled in below
         
         #Set up graph structure.
         self.graph = tf.Graph()
@@ -79,23 +79,40 @@ class NeuralNetwork(object):
             self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.tf_train_labels))
             
             #Select which optimizer to use.
-            if optimizer_type == 'GradientDescent':
-                # self.optimizer = GradientDescentOptimizerTest(optimizer_params['learning_rate']).minimize(self.loss)
-                self.optimizer = GradientDescentOpt(loss=self.loss, learning_rate=0.5, min_step=0.01)
+            if optimizer_type == 'OriginalGradientDescent':
+                self.is_custom_optimizer = False
+                self.optimizer = tf.train.GradientDescentOptimizer(optimizer_params['learning_rate']).minimize(self.loss)
+            elif optimizer_type == 'CustomGradientDescent':
+                self.is_custom_optimizer = True
+                self.optimizer = GradientDescentOpt(loss=self.loss, learning_rate=optimizer_params['learning_rate'])
             elif optimizer_type == 'Adam':
+                self.is_custom_optimizer = False
                 self.optimizer = tf.train.AdamOptimizer().minimize(self.loss)
             elif optimizer_type == 'AdamTest': #does the same thing as Adam, but is implemented outside of TensorFlow library
+                self.is_custom_optimizer = False
                 self.optimizer = AdamOptimizerTest().minimize(self.loss)
-            #etc. add more optimizers
+            elif optimizer_type == 'BFGS':
+                self.is_custom_optimizer = True
+                self.optimizer = BfgsOpt(loss=self.loss)
+            elif optimizer_type == 'ConjugateGradient':
+                self.is_custom_optimizer = True
+                self.optimizer = ConjugateGradientOpt(loss=self.loss, line_search_params=optimizer_params)
             else:
                 raise ValueError('Not a valid optimizer type.')
                 
     def __accuracy(self, predictions, labels):
         return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / predictions.shape[0])
-            
+
     def train(self, num_steps, variable_storage_file_name, verbose=True):
         #currently computes how the validation set is doing over time as well
         #could add functionality to turn this off        
+
+        def __performance_update_printer(l, predictions):
+            if verbose and (step % (max(1,num_steps/10)) == 0):
+                print("Minibatch loss at step %d: %f" % (step, l))
+                print("Minibatch accuracy: %.1f%%" % self.__accuracy(predictions, batch_labels))
+                print("Validation accuracy: %.1f%%" % self.__accuracy(self.valid_prediction.eval(), self.valid_labels))
+
         with tf.Session(graph=self.graph) as session:
             # for var in tf.trainable_variables():
             #     print var
@@ -107,13 +124,13 @@ class NeuralNetwork(object):
                 batch_labels = self.train_labels[index_subset, :]
                 feed_dict = {self.tf_train_dataset : batch_data, self.tf_train_labels : batch_labels}
 
-                self.optimizer.minimize(session)
-                o, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
-                # print o
-                if verbose and (step % (num_steps/10) == 0):
-                    print("Minibatch loss at step %d: %f" % (step, l))
-                    print("Minibatch accuracy: %.1f%%" % self.__accuracy(predictions, batch_labels))
-                    print("Validation accuracy: %.1f%%" % self.__accuracy(self.valid_prediction.eval(), self.valid_labels))
+                #different behavior depending on whether optimizer is built-in or is based on ExternalOptimizerInterface
+                if self.is_custom_optimizer:
+                    print ('hooo')
+                    self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_printer)
+                else:
+                    _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
+                    __performance_update_printer(l, predictions)
             
             validation_accuracy = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
             if verbose:
