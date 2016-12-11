@@ -8,12 +8,12 @@ network = NeuralNetwork(image_size = 28,
                         num_labels = 10,
                         batch_size = 100,
                         num_hidden_layers = 1,
-                        num_hidden_nodes = 64,
+                        num_hidden_nodes = 20,
                         train_dataset = train_dataset, 
                         train_labels = train_labels, 
                         valid_dataset = valid_dataset, 
                         valid_labels = valid_labels,
-                        optimizer_type = 'ConjugateGradient',
+                        optimizer_type = 'BFGS',
                         optimizer_params={'learning_rate': 0.0001, 'min_step': 0.02})
                         #optimizer_params={'learning_rate':0.5})
 

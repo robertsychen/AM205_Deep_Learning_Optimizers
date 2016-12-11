@@ -126,7 +126,6 @@ class NeuralNetwork(object):
 
                 #different behavior depending on whether optimizer is built-in or is based on ExternalOptimizerInterface
                 if self.is_custom_optimizer:
-                    print ('hooo')
                     self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_printer)
                 else:
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
