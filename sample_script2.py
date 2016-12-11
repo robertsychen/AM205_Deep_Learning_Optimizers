@@ -4,6 +4,8 @@ from tensorflow.contrib.opt.python.training.external_optimizer import ScipyOptim
 from adam_optimizer_test_class import AdamOptimizerTest
 import tensorflow as tf
 
+#This is old and won't work now that the opt functions are changed.
+
 vector2 = tf.Variable([5, 2.], 'vector2')
   # Make vector norm as small as possible.
 loss = tf.reduce_sum(tf.square(vector2))
