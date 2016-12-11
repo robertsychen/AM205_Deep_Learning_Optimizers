@@ -29,8 +29,8 @@ class ConjugateGradientOpt(ExternalOptimizerInterface):
     eta = 0
 
     def line_func_loss(x):
-      loss, _ = loss_grad_func(current_val + x * self.s)
-      return loss
+      this_loss, _ = loss_grad_func(current_val + x * self.s)
+      return this_loss
 
     def line_func_grad(x):
       h = 0.001
@@ -41,7 +41,6 @@ class ConjugateGradientOpt(ExternalOptimizerInterface):
       eta_new = eta - learning_rate * line_func_grad(eta)
       epsilon2 = np.linalg.norm(eta_new - eta)
       eta = eta_new
-      print ('heh')
 
     # Conjugate Gradient Algorithm
     new_val = current_val + eta * self.s

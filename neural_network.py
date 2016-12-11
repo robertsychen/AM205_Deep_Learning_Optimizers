@@ -105,22 +105,31 @@ class NeuralNetwork(object):
 
     def train(self, num_steps, variable_storage_file_name, verbose=True):
         #currently computes how the validation set is doing over time as well
-        #could add functionality to turn this off        
+        #could add functionality to turn this off 
 
-        def __performance_update_printer(l, predictions):
-            #if verbose and (step % (max(1,num_steps/10)) == 0):
-            if verbose:
-                print ('uh')
-                print("Minibatch loss at step %d: %f" % (step, l))
-                print("Minibatch accuracy: %.1f%%" % self.__accuracy(predictions, batch_labels))
-                print("Validation accuracy: %.1f%%" % self.__accuracy(self.valid_prediction.eval(), self.valid_labels))
+        global previous_update_info
+        previous_update_info = [0, None, None, None]
+
+        def __performance_update_printer(l, predictions, step):
+            global previous_update_info
+            if (step % (max(1,num_steps/10)) == 0):
+                if step != previous_update_info[0]:
+                    print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
+                    print("Minibatch accuracy: %.1f%%" % previous_update_info[2])
+                    print("Validation accuracy: %.1f%%" % previous_update_info[3])
+                    previous_update_info[0] = step
+
+                previous_update_info = [previous_update_info[0], l, self.__accuracy(predictions, batch_labels), self.__accuracy(self.valid_prediction.eval(), self.valid_labels)]
 
         with tf.Session(graph=self.graph) as session:
-            # for var in tf.trainable_variables():
-            #     print var
-            # tf.variables_initializer(tf.trainable_variables()).run(session=session)
+
             tf.initialize_all_variables().run(session=session)
-            for step in range(num_steps):
+            for step in xrange(num_steps):
+
+                def __performance_update_wrapper(l, predictions):
+                    if verbose:
+                        __performance_update_printer(l, predictions, step)
+
                 index_subset = np.random.choice(self.train_labels.shape[0], size=self.batch_size)
                 batch_data = self.train_dataset[index_subset, :]
                 batch_labels = self.train_labels[index_subset, :]
@@ -128,7 +137,7 @@ class NeuralNetwork(object):
 
                 #different behavior depending on whether optimizer is built-in or is based on ExternalOptimizerInterface
                 if self.is_custom_optimizer:
-                    self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_printer)
+                    self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_wrapper)
                 else:
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
                     __performance_update_printer(l, predictions)
