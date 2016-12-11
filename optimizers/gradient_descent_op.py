@@ -16,8 +16,6 @@ class GradientDescentOpt(ExternalOptimizerInterface):
     epsilon = float('inf')
     current_val = initial_val
     while epsilon > self.min_step:
-      
-      print(current_val.shape)
       _, grad = loss_grad_func(current_val)
       delta = - grad * self.learning_rate
       new_val = current_val + delta
