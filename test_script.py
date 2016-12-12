@@ -7,13 +7,15 @@ import numpy as np
 train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels = get_mnist_data()
 
 optimizers = [
-              ('OriginalGradientDescent', {'learning_rate': 0.5}),
+              # ('OriginalGradientDescent', {'learning_rate': 0.5}),
+              # ('CustomGradientDescent', {'learning_rate': 0.5}),
               ('Adam', {}), 
-              ('LBFGS', {'max_hist': 1000}),
-              ('ConjugateGradient', {'learning_rate': 0.0001, 'min_step': 0.02})
+              ('CustomAdam', {}), 
+              # ('LBFGS', {'max_hist': 1000}),
+              # ('ConjugateGradient', {'learning_rate': 0.0001, 'min_step': 0.02})
              ]
 
-steps = [10, 20, 50, 100]
+steps = [100]
 stats = {}
 
 for opt in optimizers:
@@ -25,7 +27,7 @@ for opt in optimizers:
     print step
     times = []
     accuracies = []
-    for i in range(10):
+    for i in range(20):
       network = NeuralNetwork(image_size = 28, 
                               num_labels = 10,
                               batch_size = 100,

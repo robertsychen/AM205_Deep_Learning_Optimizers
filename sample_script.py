@@ -14,9 +14,9 @@ network = NeuralNetwork(image_size = 28,
                         train_labels = train_labels, 
                         valid_dataset = valid_dataset, 
                         valid_labels = valid_labels,
-                        optimizer_type = 'LBFGS',
+                        optimizer_type = 'CustomAdam',
                         #optimizer_type = 'ConjugateGradient',
-                        optimizer_params={'learning_rate': 0.0001, 'min_step': 0.02, 'max_hist': 1000})
+                        optimizer_params={})
 
 network.train(num_steps = 10, variable_storage_file_name = 'model0', verbose=True)
 

@@ -2,10 +2,12 @@ import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
 import copy
+from adam_optimizer_test_class import AdamOptimizerTest
 from optimizers.gradient_descent_op import GradientDescentOpt
 from optimizers.bfgs_op import BfgsOpt
 from optimizers.conjugate_gradient_op import ConjugateGradientOpt
 from optimizers.l_bfgs_op import LBfgsOpt
+from optimizers.adam_op import AdamOpt
 
 #note: specifically for image classification, can generalize if we deem necessary
 #makes various assumptions about architecture, can alter class as necessary later
@@ -89,6 +91,9 @@ class NeuralNetwork(object):
             elif optimizer_type == 'Adam':
                 self.is_custom_optimizer = False
                 self.optimizer = tf.train.AdamOptimizer().minimize(self.loss)
+            elif optimizer_type == 'CustomAdam':
+                self.is_custom_optimizer = True
+                self.optimizer = AdamOpt(loss=self.loss, **optimizer_params)
             elif optimizer_type == 'AdamTest': #does the same thing as Adam, but is implemented outside of TensorFlow library
                 self.is_custom_optimizer = False
                 self.optimizer = AdamOptimizerTest().minimize(self.loss)
