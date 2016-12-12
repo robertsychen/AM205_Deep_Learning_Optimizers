@@ -5,6 +5,7 @@ import copy
 from optimizers.gradient_descent_op import GradientDescentOpt
 from optimizers.bfgs_op import BfgsOpt
 from optimizers.conjugate_gradient_op import ConjugateGradientOpt
+from optimizers.l_bfgs_op import LBfgsOpt
 
 #note: specifically for image classification, can generalize if we deem necessary
 #makes various assumptions about architecture, can alter class as necessary later
@@ -97,6 +98,9 @@ class NeuralNetwork(object):
             elif optimizer_type == 'ConjugateGradient':
                 self.is_custom_optimizer = True
                 self.optimizer = ConjugateGradientOpt(loss=self.loss, line_search_params=optimizer_params)
+            elif optimizer_type == 'LBFGS':
+                self.is_custom_optimizer = True
+                self.optimizer = LBfgsOpt(loss=self.loss, max_hist=optimizer_params['max_hist'])
             else:
                 raise ValueError('Not a valid optimizer type.')
                 
@@ -140,8 +144,8 @@ class NeuralNetwork(object):
                     self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_wrapper)
                 else:
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
-                    __performance_update_printer(l, predictions)
-            
+                    __performance_update_printer(l, predictions, step)
+                
             validation_accuracy = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
             if verbose:
                 print("Final Validation accuracy: %.1f%%" % validation_accuracy)
