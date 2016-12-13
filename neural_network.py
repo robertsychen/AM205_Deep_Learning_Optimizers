@@ -23,6 +23,8 @@ class NeuralNetwork(object):
                  train_labels, 
                  valid_dataset, 
                  valid_labels,
+                 test_dataset,
+                 test_labels,
                  optimizer_type, 
                  optimizer_params=None):
         self.image_size = image_size #number of pixels along side of each image; assumes square images
@@ -34,6 +36,8 @@ class NeuralNetwork(object):
         self.train_labels = train_labels
         self.valid_dataset = valid_dataset
         self.valid_labels = valid_labels
+        self.test_dataset = test_dataset
+        self.test_labels = test_labels
         self.optimizer_type = optimizer_type #string name of optimizer being used
         self.optimizer_params = optimizer_params #dictionary of any parameters needed to run the given optimizer
         self.is_custom_optimizer = None #whether optimizer is built in or is a custom one based on ExternalOptimizerInterface; filled in below
@@ -44,12 +48,14 @@ class NeuralNetwork(object):
             self.tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size))
             self.tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
             self.tf_valid_dataset = tf.constant(self.valid_dataset)
+            self.tf_test_dataset = tf.constant(self.test_dataset)
             
             if num_hidden_layers == 0:
                 self.weights1 = tf.Variable(tf.truncated_normal([image_size * image_size, num_labels]))
                 self.biases1 = tf.Variable(tf.zeros([num_labels]))
                 self.logits = tf.matmul(self.tf_train_dataset, self.weights1) + self.biases1
                 self.valid_prediction = tf.nn.softmax(tf.matmul(self.tf_valid_dataset, self.weights1) + self.biases1)
+                self.test_prediction = tf.nn.softmax(tf.matmul(self.tf_test_dataset, self.weights1) + self.biases1)
             
             elif num_hidden_layers == 1:
                 self.weights1 = tf.Variable(tf.truncated_normal([image_size * image_size, num_hidden_nodes]))
@@ -60,6 +66,8 @@ class NeuralNetwork(object):
                 self.logits = tf.matmul(self.lay1_train, self.weights2) + self.biases2
                 self.lay1_valid = tf.nn.relu(tf.matmul(self.tf_valid_dataset, self.weights1) + self.biases1)
                 self.valid_prediction = tf.nn.softmax(tf.matmul(self.lay1_valid, self.weights2) + self.biases2)
+                self.lay1_test = tf.nn.relu(tf.matmul(self.tf_test_dataset, self.weights1) + self.biases1)
+                self.test_prediction = tf.nn.softmax(tf.matmul(self.lay1_test, self.weights2) + self.biases2)
                 
             elif num_hidden_layers == 2:
                 self.weights1 = tf.Variable(tf.truncated_normal([image_size * image_size, num_hidden_nodes]))
@@ -74,6 +82,9 @@ class NeuralNetwork(object):
                 self.lay1_valid = tf.nn.relu(tf.matmul(self.tf_valid_dataset, self.weights1) + self.biases1)
                 self.lay2_valid = tf.nn.relu(tf.matmul(self.lay1_valid, self.weights2) + self.biases2)
                 self.valid_prediction = tf.nn.softmax(tf.matmul(self.lay2_valid, self.weights3) + self.biases3)
+                self.lay1_test = tf.nn.relu(tf.matmul(self.tf_test_dataset, self.weights1) + self.biases1)
+                self.lay2_test = tf.nn.relu(tf.matmul(self.lay1_test, self.weights2) + self.biases2)
+                self.test_prediction = tf.nn.softmax(tf.matmul(self.lay2_test, self.weights3) + self.biases3)
 
             elif num_hidden_layers == 5:
                 self.weights1 = tf.Variable(tf.truncated_normal([image_size * image_size, num_hidden_nodes]))
@@ -100,6 +111,12 @@ class NeuralNetwork(object):
                 self.lay4_valid = tf.nn.relu(tf.matmul(self.lay3_valid, self.weights4) + self.biases4)
                 self.lay5_valid = tf.nn.relu(tf.matmul(self.lay4_valid, self.weights5) + self.biases5)
                 self.valid_prediction = tf.nn.softmax(tf.matmul(self.lay5_valid, self.weights6) + self.biases6)
+                self.lay1_test = tf.nn.relu(tf.matmul(self.tf_test_dataset, self.weights1) + self.biases1)
+                self.lay2_test = tf.nn.relu(tf.matmul(self.lay1_test, self.weights2) + self.biases2)
+                self.lay3_test = tf.nn.relu(tf.matmul(self.lay2_test, self.weights3) + self.biases3)
+                self.lay4_test = tf.nn.relu(tf.matmul(self.lay3_test, self.weights4) + self.biases4)
+                self.lay5_test = tf.nn.relu(tf.matmul(self.lay4_test, self.weights5) + self.biases5)
+                self.test_prediction = tf.nn.softmax(tf.matmul(self.lay5_test, self.weights6) + self.biases6)
                 
             else:
                 raise ValueError('This number of hidden layers not currently supported.')
@@ -119,7 +136,7 @@ class NeuralNetwork(object):
                 self.optimizer = tf.train.AdamOptimizer().minimize(self.loss)
             elif optimizer_type == 'CustomAdam':
                 self.is_custom_optimizer = True
-                self.optimizer = AdamOpt(loss=self.loss, **optimizer_params)
+                self.optimizer = AdamOpt(loss=self.loss)
             elif optimizer_type == 'AdamTest': #does the same thing as Adam, but is implemented outside of TensorFlow library
                 self.is_custom_optimizer = False
                 self.optimizer = AdamOptimizerTest().minimize(self.loss)
@@ -239,19 +256,17 @@ class NeuralNetwork(object):
             saver = tf.train.Saver() #this saving behavior allows you to train multiple versions of the model using the same class
             save_path = saver.save(session, variable_storage_file_name)
 
-
-
-            return validation_accuracy
+            return validation_accuracy, step
         
     def test(self, variable_storage_file_name, new_dataset=0, new_labels=0, noise_type=None, noise_mean=None):
-        #if new_dataset is 0 and new_labels is 0: uses the validation set and labels to predict and score
-        #if new_dataset isnt 0 and new_labels isnt 0: uses the new test set to predict
-        #if new_dataset isnt 0 None and new_labels isnt 0: uses the new test set and labels to predict and score
-        #important note: new_dataset & new_labels must have same amount of data points as self.valid_dataset, self.valid_labels
+        #if new_dataset is 0 and new_labels is 0: uses the test set and labels to predict and score
+        #if new_dataset isnt 0 and new_labels isnt 0: uses a new test set to predict
+        #if new_dataset isnt 0 None and new_labels isnt 0: uses a new test set and labels to predict and score
+        #important note: new_dataset & new_labels must have same amount of data points as self.test_dataset, self.test_labels
         #this is an unfortunate truth based on the tensor setup above
 
         #Add some noise to test data if applicable
-        noisy_dataset = copy.deepcopy(self.valid_dataset)
+        noisy_dataset = copy.deepcopy(self.test_dataset)
         if noise_type:
             if new_dataset == 0 and new_labels == 0:
                 if noise_type == 'normal':
@@ -273,14 +288,14 @@ class NeuralNetwork(object):
                 this_dataset = new_dataset
                 this_labels = new_labels
             else:
-                this_dataset = self.valid_dataset
-                this_labels = self.valid_labels
+                this_dataset = self.test_dataset
+                this_labels = self.test_labels
 
             #Switch to noisy data if applicable
             if noise_type:
                 this_dataset = noisy_dataset
 
-            feed_dict_clean = {self.tf_valid_dataset: this_dataset}
-            valid_y = session.run(self.valid_prediction, feed_dict=feed_dict_clean)
-            resulting_accuracy = None if type(new_dataset) is not int and type(new_labels) is int else self.__accuracy(valid_y, this_labels)
-        return resulting_accuracy, valid_y
+            feed_dict_clean = {self.tf_test_dataset: this_dataset}
+            test_y = session.run(self.test_prediction, feed_dict=feed_dict_clean)
+            resulting_accuracy = None if type(new_dataset) is not int and type(new_labels) is int else self.__accuracy(test_y, this_labels)
+        return resulting_accuracy, test_y
