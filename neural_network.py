@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
 import copy
-from adam_optimizer_test_class import AdamOptimizerTest
 from optimizers.gradient_descent_op import GradientDescentOpt
 from optimizers.bfgs_op import BfgsOpt
 from optimizers.conjugate_gradient_op import ConjugateGradientOpt
@@ -112,7 +111,15 @@ class NeuralNetwork(object):
     def __accuracy(self, predictions, labels):
         return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / predictions.shape[0])
 
-    def train(self, num_steps, variable_storage_file_name, verbose=True):
+    def __apply_normal_noise(self, data, mean):
+        sigma = np.sqrt(np.pi/2.0)*mean
+        if sigma == 0.0:
+            return data
+        else:
+            random_values = np.random.normal(0.0, sigma, data.shape[0]*data.shape[1]).reshape(data.shape)
+            return np.clip((data + random_values), 0.0, 1.0)
+
+    def train(self, num_steps, variable_storage_file_name, verbose=True, noise_type=None, noise_mean=None):
         #currently computes how the validation set is doing over time as well
         #could add functionality to turn this off 
 
@@ -133,6 +140,15 @@ class NeuralNetwork(object):
         with tf.Session(graph=self.graph) as session:
 
             tf.initialize_all_variables().run(session=session)
+
+            #Add noise (optional).
+            this_train_dataset = copy.deepcopy(self.train_dataset)
+            if noise_type:
+                if noise_type == 'normal':
+                    this_train_dataset = self.__apply_normal_noise(this_train_dataset, noise_mean)
+                else:
+                    raise ValueError('noise type not currently supported')
+
             for step in xrange(num_steps):
 
                 def __performance_update_wrapper(l, predictions):
@@ -140,7 +156,7 @@ class NeuralNetwork(object):
                         __performance_update_printer(l, predictions, step)
 
                 index_subset = np.random.choice(self.train_labels.shape[0], size=self.batch_size)
-                batch_data = self.train_dataset[index_subset, :]
+                batch_data = this_train_dataset[index_subset, :]
                 batch_labels = self.train_labels[index_subset, :]
                 feed_dict = {self.tf_train_dataset : batch_data, self.tf_train_labels : batch_labels}
 
@@ -159,12 +175,26 @@ class NeuralNetwork(object):
             save_path = saver.save(session, variable_storage_file_name)
             return validation_accuracy
         
-    def test(self, variable_storage_file_name, new_dataset=0, new_labels=0):
+    def test(self, variable_storage_file_name, new_dataset=0, new_labels=0, noise_type=None, noise_mean=None):
         #if new_dataset is 0 and new_labels is 0: uses the validation set and labels to predict and score
         #if new_dataset isnt 0 and new_labels isnt 0: uses the new test set to predict
         #if new_dataset isnt 0 None and new_labels isnt 0: uses the new test set and labels to predict and score
         #important note: new_dataset & new_labels must have same amount of data points as self.valid_dataset, self.valid_labels
         #this is an unfortunate truth based on the tensor setup above
+
+        #Add some noise to test data if applicable
+        is_adding_noise = False
+        noisy_dataset = copy.deepcopy(self.valid_dataset)
+        if noise_type:
+            if new_dataset == 0 and new_labels == 0:
+                if noise_type == 'normal':
+                    noisy_dataset = self.__apply_normal_noise(noisy_dataset, noise_mean)
+                    is_adding_noise = True
+                else: 
+                    raise ValueError('Noise type not supported')
+            else:
+                raise ValueError('No such functionality to add noise to testing data')
+
         resulting_accuracy = None
         with tf.Session(graph=self.graph) as session:
             saver = tf.train.Saver()
@@ -178,8 +208,12 @@ class NeuralNetwork(object):
                 this_labels = new_labels
             else:
                 this_dataset = self.valid_dataset
-                this_labels = self.valid_labels   
-            
+                this_labels = self.valid_labels
+
+            #Switch to noisy data if applicable
+            if is_adding_noise:
+                this_dataset = noisy_dataset
+
             feed_dict_clean = {self.tf_valid_dataset: this_dataset}
             valid_y = session.run(self.valid_prediction, feed_dict=feed_dict_clean)
             resulting_accuracy = None if type(new_dataset) is not int and type(new_labels) is int else self.__accuracy(valid_y, this_labels)
