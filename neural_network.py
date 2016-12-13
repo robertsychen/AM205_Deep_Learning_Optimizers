@@ -184,7 +184,7 @@ class NeuralNetwork(object):
             if is_fixed_num_steps:
                 verbose_print_freq = min(500,(max(1,num_steps/10)))
             else:
-                verbose_print_freq = 1
+                verbose_print_freq = 50
 
         def __performance_update_assigner_and_printer(l, predictions, step):
             global previous_update_info
