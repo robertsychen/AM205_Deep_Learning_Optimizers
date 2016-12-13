@@ -14,11 +14,11 @@ network = NeuralNetwork(image_size = 28,
                         train_labels = train_labels, 
                         valid_dataset = valid_dataset, 
                         valid_labels = valid_labels,
-                        optimizer_type = 'CustomAdam',
+                        optimizer_type = 'HessianFree',
                         #optimizer_type = 'ConjugateGradient',
                         optimizer_params={})
 
-network.train(num_steps = 10, variable_storage_file_name = 'model0', verbose=True)
+network.train(num_steps = 20, variable_storage_file_name = 'model0', verbose=True)
 
 accuracy, _ = network.test(variable_storage_file_name = 'model0')
 print accuracy

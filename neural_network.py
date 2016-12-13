@@ -8,6 +8,7 @@ from optimizers.bfgs_op import BfgsOpt
 from optimizers.conjugate_gradient_op import ConjugateGradientOpt
 from optimizers.l_bfgs_op import LBfgsOpt
 from optimizers.adam_op import AdamOpt
+from optimizers.hessian_free_op import HessianFreeOpt
 
 #note: specifically for image classification, can generalize if we deem necessary
 #makes various assumptions about architecture, can alter class as necessary later
@@ -106,6 +107,9 @@ class NeuralNetwork(object):
             elif optimizer_type == 'LBFGS':
                 self.is_custom_optimizer = True
                 self.optimizer = LBfgsOpt(loss=self.loss, max_hist=optimizer_params['max_hist'])
+            elif optimizer_type == 'HessianFree':
+                self.is_custom_optimizer = True
+                self.optimizer = HessianFreeOpt(loss=self.loss)
             else:
                 raise ValueError('Not a valid optimizer type.')
                 
