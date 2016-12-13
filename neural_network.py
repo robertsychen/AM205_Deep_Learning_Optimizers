@@ -88,7 +88,7 @@ class NeuralNetwork(object):
             elif optimizer_type == 'CustomGradientDescent':
                 self.is_custom_optimizer = True
                 self.optimizer = GradientDescentOpt(loss=self.loss, learning_rate=optimizer_params['learning_rate'])
-            elif optimizer_type == 'Adam':
+            elif optimizer_type == 'OriginalAdam':
                 self.is_custom_optimizer = False
                 self.optimizer = tf.train.AdamOptimizer().minimize(self.loss)
             elif optimizer_type == 'CustomAdam':
@@ -132,7 +132,7 @@ class NeuralNetwork(object):
 
         def __performance_update_printer(l, predictions, step):
             global previous_update_info
-            if (step % (max(1,num_steps/10)) == 0):
+            if (step % min(1000,(max(1,num_steps/10))) == 0):
                 if step != previous_update_info[0]:
                     print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
                     print("Minibatch accuracy: %.1f%%" % previous_update_info[2])
@@ -177,6 +177,9 @@ class NeuralNetwork(object):
             
             saver = tf.train.Saver() #this saving behavior allows you to train multiple versions of the model using the same class
             save_path = saver.save(session, variable_storage_file_name)
+
+
+
             return validation_accuracy
         
     def test(self, variable_storage_file_name, new_dataset=0, new_labels=0, noise_type=None, noise_mean=None):
@@ -187,13 +190,11 @@ class NeuralNetwork(object):
         #this is an unfortunate truth based on the tensor setup above
 
         #Add some noise to test data if applicable
-        is_adding_noise = False
         noisy_dataset = copy.deepcopy(self.valid_dataset)
         if noise_type:
             if new_dataset == 0 and new_labels == 0:
                 if noise_type == 'normal':
                     noisy_dataset = self.__apply_normal_noise(noisy_dataset, noise_mean)
-                    is_adding_noise = True
                 else: 
                     raise ValueError('Noise type not supported')
             else:
@@ -215,7 +216,7 @@ class NeuralNetwork(object):
                 this_labels = self.valid_labels
 
             #Switch to noisy data if applicable
-            if is_adding_noise:
+            if noise_type:
                 this_dataset = noisy_dataset
 
             feed_dict_clean = {self.tf_valid_dataset: this_dataset}

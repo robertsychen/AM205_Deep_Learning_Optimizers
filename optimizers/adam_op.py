@@ -13,7 +13,7 @@ class AdamOpt(ExternalOptimizerInterface):
     self.epsilon = epsilon
     self.m = None
     self.v = None
-    self.t = 0
+    self.t = 0 
 
   def _minimize(self, initial_val, loss_grad_func, equality_funcs,
                 equality_grad_funcs, inequality_funcs, inequality_grad_funcs,
@@ -29,6 +29,6 @@ class AdamOpt(ExternalOptimizerInterface):
     self.v = self.beta2 * self.v + (1 - self.beta2) * (grad ** 2)
     m_hat = self.m / (1 - (self.beta1 ** self.t))
     v_hat = self.v / (1 - (self.beta2 ** self.t))
-    print(m_hat)
     new_val = initial_val - self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
+
     return new_val

@@ -13,12 +13,13 @@ network = NeuralNetwork(image_size = 28,
                         train_labels = train_labels, 
                         valid_dataset = valid_dataset, 
                         valid_labels = valid_labels,
-                        optimizer_type = 'HessianFree',
-                        #optimizer_type = 'ConjugateGradient',
-                        optimizer_params={})
+                        optimizer_type = 'CustomAdam',
+                        #optimizer_type = 'CustomGradientDescent',
+                        #optimizer_params={})
+                        optimizer_params={'learning_rate':0.5})
 
 #network.train(num_steps = 100, variable_storage_file_name = 'model0', verbose=True, noise_type='normal', noise_mean=0.1)
-network.train(num_steps = 100, variable_storage_file_name = 'model0', verbose=True)
+network.train(num_steps = 200, variable_storage_file_name = 'model0', verbose=True)
 
 #accuracy, _ = network.test(variable_storage_file_name = 'model0', noise_type='normal', noise_mean=0.1)
 accuracy, _ = network.test(variable_storage_file_name = 'model0')

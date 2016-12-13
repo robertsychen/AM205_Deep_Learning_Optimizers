@@ -16,4 +16,5 @@ class GradientDescentOpt(ExternalOptimizerInterface):
     _, grad = loss_grad_func(current_val)
     delta = - grad * self.learning_rate
     new_val = current_val + delta
+
     return new_val

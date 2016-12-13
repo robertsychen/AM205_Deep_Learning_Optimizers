@@ -1,6 +1,5 @@
 from neural_network import NeuralNetwork
 from mnist_data import get_mnist_data
-from adam_optimizer_test_class import AdamOptimizerTest
 import time
 import numpy as np
 
