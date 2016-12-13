@@ -74,6 +74,32 @@ class NeuralNetwork(object):
                 self.lay1_valid = tf.nn.relu(tf.matmul(self.tf_valid_dataset, self.weights1) + self.biases1)
                 self.lay2_valid = tf.nn.relu(tf.matmul(self.lay1_valid, self.weights2) + self.biases2)
                 self.valid_prediction = tf.nn.softmax(tf.matmul(self.lay2_valid, self.weights3) + self.biases3)
+
+            elif num_hidden_layers == 5:
+                self.weights1 = tf.Variable(tf.truncated_normal([image_size * image_size, num_hidden_nodes]))
+                self.biases1 = tf.Variable(tf.zeros([num_hidden_nodes]))
+                self.weights2 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_hidden_nodes]))
+                self.biases2 = tf.Variable(tf.zeros([num_hidden_nodes]))
+                self.weights3 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_hidden_nodes]))
+                self.biases3 = tf.Variable(tf.zeros([num_hidden_nodes]))
+                self.weights4 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_hidden_nodes]))
+                self.biases4 = tf.Variable(tf.zeros([num_hidden_nodes]))
+                self.weights5 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_hidden_nodes]))
+                self.biases5 = tf.Variable(tf.zeros([num_hidden_nodes]))
+                self.weights6 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_labels]))
+                self.biases6 = tf.Variable(tf.zeros([num_labels]))
+                self.lay1_train = tf.nn.relu(tf.matmul(self.tf_train_dataset, self.weights1) + self.biases1)
+                self.lay2_train = tf.nn.relu(tf.matmul(self.lay1_train, self.weights2) + self.biases2)
+                self.lay3_train = tf.nn.relu(tf.matmul(self.lay2_train, self.weights3) + self.biases3)
+                self.lay4_train = tf.nn.relu(tf.matmul(self.lay3_train, self.weights4) + self.biases4)
+                self.lay5_train = tf.nn.relu(tf.matmul(self.lay4_train, self.weights5) + self.biases5)
+                self.logits = tf.matmul(self.lay5_train, self.weights6) + self.biases6
+                self.lay1_valid = tf.nn.relu(tf.matmul(self.tf_valid_dataset, self.weights1) + self.biases1)
+                self.lay2_valid = tf.nn.relu(tf.matmul(self.lay1_valid, self.weights2) + self.biases2)
+                self.lay3_valid = tf.nn.relu(tf.matmul(self.lay2_valid, self.weights3) + self.biases3)
+                self.lay4_valid = tf.nn.relu(tf.matmul(self.lay3_valid, self.weights4) + self.biases4)
+                self.lay5_valid = tf.nn.relu(tf.matmul(self.lay4_valid, self.weights5) + self.biases5)
+                self.valid_prediction = tf.nn.softmax(tf.matmul(self.lay5_valid, self.weights6) + self.biases6)
                 
             else:
                 raise ValueError('This number of hidden layers not currently supported.')
@@ -139,7 +165,7 @@ class NeuralNetwork(object):
         verbose_print_freq = None
         if verbose:
             if is_fixed_num_steps:
-                verbose_print_freq = min(1000,(max(1,num_steps/10)))
+                verbose_print_freq = min(500,(max(1,num_steps/10)))
             else:
                 verbose_print_freq = 1
 
@@ -152,7 +178,7 @@ class NeuralNetwork(object):
                 previous_update_info[2] = self.__accuracy(predictions, batch_labels)
                 previous_update_info[3] = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
 
-                if (step % verbose_print_freq == 0):
+                if verbose and (step % verbose_print_freq == 0):
                     print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
                     print("Minibatch accuracy: %.1f%%" % previous_update_info[2])
                     print("Validation accuracy: %.1f%%" % previous_update_info[3])       
@@ -185,7 +211,6 @@ class NeuralNetwork(object):
                 step += 1
 
                 def __performance_update_wrapper(l, predictions):
-                    if verbose:
                         __performance_update_assigner_and_printer(l, predictions, step)
 
                 index_subset = np.random.choice(self.train_labels.shape[0], size=self.batch_size)
@@ -198,7 +223,7 @@ class NeuralNetwork(object):
                     self.optimizer.minimize(session, feed_dict=feed_dict, fetches=[self.loss, self.train_prediction], loss_callback=__performance_update_wrapper)
                 else:
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
-                    __performance_update_printer(l, predictions, step)
+                    __performance_update_assigner_and_printer(l, predictions, step)
 
                 if is_fixed_num_steps:
                     if step >= num_steps:
