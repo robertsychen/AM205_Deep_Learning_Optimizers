@@ -123,23 +123,50 @@ class NeuralNetwork(object):
             random_values = np.random.normal(0.0, sigma, data.shape[0]*data.shape[1]).reshape(data.shape)
             return np.clip((data + random_values), 0.0, 1.0)
 
-    def train(self, num_steps, variable_storage_file_name, verbose=True, noise_type=None, noise_mean=None):
-        #currently computes how the validation set is doing over time as well
-        #could add functionality to turn this off 
+    def train(self, variable_storage_file_name, num_steps=None, auto_terminate_num_iter=None, verbose=True, noise_type=None, noise_mean=None):
+        #Exactly one of num_steps or auto_terminate_validation_cutoff should be None, the other should not.
+        #if num_steps is not None: stop training after that number of steps
+        #if auto_terminate_num_iter is not None: terminate whenever the validation set accuracy has not set a new record in auto_terminate_num_iter iterations
+
+        assert((auto_terminate_num_iter is None) ^ (num_steps is None))
+        is_fixed_num_steps = True
+        if num_steps is None:
+            is_fixed_num_steps = False
 
         global previous_update_info
-        previous_update_info = [0, None, None, None]
+        previous_update_info = [0, None, None, None, 0, None] #step number, minibatch loss, minibatch accuracy, validation set accuracy, num. iterations since last validation accuracy improvement, previous best validation accuracy
 
-        def __performance_update_printer(l, predictions, step):
+        verbose_print_freq = None
+        if verbose:
+            if is_fixed_num_steps:
+                verbose_print_freq = min(1000,(max(1,num_steps/10)))
+            else:
+                verbose_print_freq = 1
+
+        def __performance_update_assigner_and_printer(l, predictions, step):
             global previous_update_info
-            if (step % min(1000,(max(1,num_steps/10))) == 0):
-                if step != previous_update_info[0]:
+            if step != previous_update_info[0]:
+
+                previous_update_info[0] = step
+                previous_update_info[1] = l
+                previous_update_info[2] = self.__accuracy(predictions, batch_labels)
+                previous_update_info[3] = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
+
+                if (step % verbose_print_freq == 0):
                     print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
                     print("Minibatch accuracy: %.1f%%" % previous_update_info[2])
-                    print("Validation accuracy: %.1f%%" % previous_update_info[3])
-                    previous_update_info[0] = step
+                    print("Validation accuracy: %.1f%%" % previous_update_info[3])       
 
-                previous_update_info = [previous_update_info[0], l, self.__accuracy(predictions, batch_labels), self.__accuracy(self.valid_prediction.eval(), self.valid_labels)]
+                #keep track of how many iterations since validation accuracy improved
+                if not is_fixed_num_steps:
+                    if previous_update_info[5] is None:
+                        previous_update_info[5] = previous_update_info[3]
+                    elif previous_update_info[3] > previous_update_info[5]:
+                        previous_update_info[5] = previous_update_info[3]
+                        previous_update_info[4] = 0
+                    else:
+                        previous_update_info[4] += 1
+
 
         with tf.Session(graph=self.graph) as session:
 
@@ -153,11 +180,13 @@ class NeuralNetwork(object):
                 else:
                     raise ValueError('noise type not currently supported')
 
-            for step in xrange(num_steps):
+            step = 0
+            while True:
+                step += 1
 
                 def __performance_update_wrapper(l, predictions):
                     if verbose:
-                        __performance_update_printer(l, predictions, step)
+                        __performance_update_assigner_and_printer(l, predictions, step)
 
                 index_subset = np.random.choice(self.train_labels.shape[0], size=self.batch_size)
                 batch_data = this_train_dataset[index_subset, :]
@@ -170,6 +199,13 @@ class NeuralNetwork(object):
                 else:
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
                     __performance_update_printer(l, predictions, step)
+
+                if is_fixed_num_steps:
+                    if step >= num_steps:
+                        break
+                else:
+                    if previous_update_info[4] >= auto_terminate_num_iter:
+                        break
                 
             validation_accuracy = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
             if verbose:

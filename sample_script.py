@@ -19,7 +19,8 @@ network = NeuralNetwork(image_size = 28,
                         optimizer_params={'learning_rate':0.5})
 
 #network.train(num_steps = 100, variable_storage_file_name = 'model0', verbose=True, noise_type='normal', noise_mean=0.1)
-network.train(num_steps = 200, variable_storage_file_name = 'model0', verbose=True)
+#network.train(num_steps = 20, variable_storage_file_name = 'model0', verbose=True)
+network.train(auto_terminate_num_iter = 5, variable_storage_file_name = 'model0', verbose=True)
 
 #accuracy, _ = network.test(variable_storage_file_name = 'model0', noise_type='normal', noise_mean=0.1)
 accuracy, _ = network.test(variable_storage_file_name = 'model0')
