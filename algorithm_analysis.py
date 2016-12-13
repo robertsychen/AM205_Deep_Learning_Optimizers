@@ -42,7 +42,7 @@ def run_single_set(num_runs, num_hidden_layers, num_hidden_nodes, auto_terminate
     _, steps = network.train(auto_terminate_num_iter=auto_terminate_num_iter, variable_storage_file_name='model0', verbose=True, noise_type=noise_type_train, noise_mean=noise_mean_test)
     #_, steps = network.train(num_steps=auto_terminate_num_iter, variable_storage_file_name='model0', verbose=True, noise_type=noise_type_train, noise_mean=noise_mean_test)
     elapsed_time = time.time() - t
-    accuracy, _ = network.test(variable_storage_file_name = 'model0', new_dataset=test_dataset, new_labels=test_labels, noise_type=noise_type_test, noise_mean=noise_mean_test)
+    accuracy, _ = network.test(variable_storage_file_name = 'model0', new_dataset=0, new_labels=0, noise_type=noise_type_test, noise_mean=noise_mean_test)
     train_times.append(elapsed_time)
     test_accuracies.append(accuracy)
     num_steps.append(steps)
@@ -53,16 +53,24 @@ def run_single_set(num_runs, num_hidden_layers, num_hidden_nodes, auto_terminate
 
   return train_times_enhanced, test_accuracies_enhanced, num_steps_enhanced
 
+#################################################################
+
+
 number_name = 0
-diff_structure = [[1,8],[1,256],[5,8]]
-diff_algorithms = ['CustomGradientDescent', 'CustomAdam', 'ConjugateGradient', 'HessianFree', 'LBFGS']
-diff_noises = [[None, None, None, None],[None, None, 'normal', 0.01],['normal', 0.01, 'normal', 0.01]]
-for structure in diff_structure:
-  for algo in diff_algorithms:
-    for noise in diff_noises:
-      result = run_single_set(5, structure[0], structure[1], 50, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
-      print result
-      pickle.dump(result, open("result" + str(number_name) + ".pkl", "wb"))
+number_start = 0
+number_end = 44
+
+diff_structure = [[1,16],[1,256],[5,16]]
+diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
+diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]]
+
+for noise in diff_noises:
+  for structure in diff_structure:
+    for algo in diff_algorithms:
+      if number_name >= number_start and number_name <= number_end:
+        result = run_single_set(5, structure[0], structure[1], 50, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
+        print result
+        pickle.dump(result, open("result" + str(number_name) + ".pkl", "wb"))
       number_name += 1
 
 
