@@ -46,6 +46,12 @@ for algo in ['hess','cg','bfgs']:
         results_master[algo][noise]['acc']['full'] = result1['result'][1][0] + result2['result'][1][0]
         results_master[algo][noise]['iters']['full'] = result1['result'][2][0] + result2['result'][2][0]
 
+#drop problematic cases of hessian-free
+for stat in ['time', 'acc', 'iters']:
+    results_master['hess']['none'][stat]['full'] = [results_master['hess']['none'][stat]['full'][i] for i in [0,1,2,4,5,6,8,9,10,12,13,14]]
+    results_master['hess']['test'][stat]['full'] = [results_master['hess']['test'][stat]['full'][i] for i in [0,1,2,3,4,5,7,9,10,11,12,14]]
+    results_master['hess']['both'][stat]['full'] = [results_master['hess']['both'][stat]['full'][i] for i in [1,2,3,4,5,6,9,11,12,13,14]]
+
 #computing mean and SD
 for algo in ['gd','adam','hess','cg','bfgs']:
     for noise in ['none', 'test', 'both']:
@@ -57,17 +63,17 @@ for algo in ['gd','adam','hess','cg','bfgs']:
 pickle.dump(results_master, open("master_results_dict.pkl", "wb"))
 
 #print results nicely
-for algo in ['gd','adam','hess','cg','bfgs']:
-    for noise in ['none', 'test', 'both']:
-        for stat in ['time', 'acc', 'iters']:
+for stat in ['time', 'acc', 'iters']:
+    for algo in ['gd','adam','hess','cg','bfgs']:
+        for noise in ['none', 'test', 'both']:
             print
             print algo, noise, stat
             print "All runs:"
-            print results_master[algo][noise][stat]['full']
+            print [round(elem, 1) for elem in results_master[algo][noise][stat]['full']]
             print "Mean:"
-            print results_master[algo][noise][stat]['mean']
+            print round(results_master[algo][noise][stat]['mean'], 1)
             print "SD:"
-            print results_master[algo][noise][stat]['sd']
+            print round(results_master[algo][noise][stat]['sd'] / np.sqrt(15.0), 2)
 
 
 
