@@ -4,21 +4,13 @@ import time
 import numpy as np
 import cPickle as pickle
 
-train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels = get_mnist_data()
-#training: 55,000 examples. validation: 5,000 examples. testing: 10,000 examples.
+#Automated recording of validation accuracy by iteration, with results saved to .pkl files.
+#This was recorded after every iteration, over 500 iterations, for each (algorithm, noise type) tuple.
 
-optimizer_parameters = {}
-optimizer_parameters['OriginalGradientDescent'] = {'learning_rate': 0.5}
-optimizer_parameters['CustomGradientDescent'] = {'learning_rate': 0.5}
-optimizer_parameters['OriginalAdam'] = {}
-optimizer_parameters['CustomAdam'] = {}
-optimizer_parameters['LBFGS'] = {'max_hist': 1000}
-optimizer_parameters['ConjugateGradient'] = {'learning_rate': 0.0001, 'min_step': 0.02}
-optimizer_parameters['HessianFree'] = {}
-noise_dict = {'both': ['normal', 0.1, 'normal', 0.1], 'test': [None, None, 'normal', 0.1], 'none':[None, None, None, None]}
+#training: 55,000 examples. validation: 5,000 examples. testing: 10,000 examples.
+train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels = get_mnist_data()
 
 def get_single_history(num_runs, num_hidden_layers, num_hidden_nodes, num_steps, optimizer_type, optimizer_params=None, noise_type_train=None, noise_mean_train=None, noise_type_test=None, noise_mean_test=None):
-
        network = NeuralNetwork(image_size = 28, 
                                    num_labels = 10,
                                    batch_size = 100,
@@ -32,15 +24,21 @@ def get_single_history(num_runs, num_hidden_layers, num_hidden_nodes, num_steps,
                                    test_labels = test_labels,
                                    optimizer_type = optimizer_type,
                                    optimizer_params= optimizer_params)
-
        network.train(num_steps=num_steps, variable_storage_file_name='model0', verbose=True, noise_type=noise_type_train, noise_mean=noise_mean_test)
        return network.validation_accuracy_history
 
-diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
-#diff_noises = ['none', 'test', 'both']
-diff_noises = ['both']
+optimizer_parameters = {}
+optimizer_parameters['OriginalGradientDescent'] = {'learning_rate': 0.5}
+optimizer_parameters['CustomGradientDescent'] = {'learning_rate': 0.5}
+optimizer_parameters['OriginalAdam'] = {}
+optimizer_parameters['CustomAdam'] = {}
+optimizer_parameters['LBFGS'] = {'max_hist': 1000}
+optimizer_parameters['ConjugateGradient'] = {'learning_rate': 0.0001, 'min_step': 0.02}
+optimizer_parameters['HessianFree'] = {}
+noise_dict = {'both': ['normal', 0.1, 'normal', 0.1], 'test': [None, None, 'normal', 0.1], 'none':[None, None, None, None]}
 
-####
+diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
+diff_noises = ['none', 'test', 'both']
 
 steps = 500
 num_runs_per = 1

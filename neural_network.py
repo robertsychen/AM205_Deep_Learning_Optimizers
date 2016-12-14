@@ -9,6 +9,10 @@ from optimizers.l_bfgs_op import LBfgsOpt
 from optimizers.adam_op import AdamOpt
 from optimizers.hessian_free_op import HessianFreeOpt
 
+'''NeuralNetwork class that encapsulates the neural network graph-building process 
+(which specifies the network architecture, algorithm being used, and other parameters),
+the training procedure, and testing procedure, as well as including various other functionality.'''
+
 class NeuralNetwork(object):
     def __init__(self,
                  image_size, 
@@ -27,8 +31,8 @@ class NeuralNetwork(object):
         self.image_size = image_size #number of pixels along side of each image; assumes square images
         self.num_labels = num_labels #total number of classes that images can be assigned to
         self.batch_size = batch_size #number of training images in each mini-batch for optimization
-        self.num_hidden_layers = num_hidden_layers #number of hidden layers must be 0 or 1 or 2 (for now)
-        self.num_hidden_nodes = num_hidden_nodes #number of hidden nodes per layer; assumes all layers same for now
+        self.num_hidden_layers = num_hidden_layers #number of hidden layers
+        self.num_hidden_nodes = num_hidden_nodes #number of hidden nodes per layer; assumes all layers same
         self.train_dataset = train_dataset
         self.train_labels = train_labels
         self.valid_dataset = valid_dataset
@@ -135,9 +139,6 @@ class NeuralNetwork(object):
             elif optimizer_type == 'CustomAdam':
                 self.is_custom_optimizer = True
                 self.optimizer = AdamOpt(loss=self.loss)
-            elif optimizer_type == 'AdamTest': #does the same thing as Adam, but is implemented outside of TensorFlow library
-                self.is_custom_optimizer = False
-                self.optimizer = AdamOptimizerTest().minimize(self.loss)
             elif optimizer_type == 'BFGS':
                 self.is_custom_optimizer = True
                 self.optimizer = BfgsOpt(loss=self.loss)
@@ -175,7 +176,8 @@ class NeuralNetwork(object):
             is_fixed_num_steps = False
 
         global previous_update_info
-        previous_update_info = [0, None, None, None, 0, None] #step number, minibatch loss, minibatch accuracy, validation set accuracy, num. iterations since last validation accuracy improvement, previous best validation accuracy
+        #[step number, minibatch loss, minibatch accuracy, validation set accuracy, num. iterations since last validation accuracy improvement, previous best validation accuracy]
+        previous_update_info = [0, None, None, None, 0, None]
 
         verbose_print_freq = None
         if verbose:
@@ -189,14 +191,14 @@ class NeuralNetwork(object):
         def __performance_update_assigner_and_printer(l, predictions, step):
             global previous_update_info
             if step != previous_update_info[0]:
-
+                #update statistics once an iteration has been completed
                 previous_update_info[0] = step
                 previous_update_info[1] = l
                 previous_update_info[2] = self.__accuracy(predictions, batch_labels)
                 previous_update_info[3] = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
-
                 self.validation_accuracy_history.append(previous_update_info[3])
 
+                #print updates about training progress
                 if verbose and (step % verbose_print_freq == 0):
                     print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
                     print("Minibatch accuracy: %.1f%%" % previous_update_info[2])
@@ -212,18 +214,16 @@ class NeuralNetwork(object):
                     else:
                         previous_update_info[4] += 1
 
-
         with tf.Session(graph=self.graph) as session:
-
             tf.initialize_all_variables().run(session=session)
 
-            #Add noise (optional).
+            #Add noise to training data (optional).
             this_train_dataset = copy.deepcopy(self.train_dataset)
             if noise_type:
                 if noise_type == 'normal':
                     this_train_dataset = self.__apply_normal_noise(this_train_dataset, noise_mean)
                 else:
-                    raise ValueError('noise type not currently supported')
+                    raise ValueError('Noise type not currently supported')
 
             step = 0
             while True:
@@ -244,6 +244,7 @@ class NeuralNetwork(object):
                     _, l, predictions = session.run([self.optimizer, self.loss, self.train_prediction], feed_dict=feed_dict)
                     __performance_update_assigner_and_printer(l, predictions, step)
 
+                #decide whether or not to end the training process yet
                 if is_fixed_num_steps:
                     if step >= num_steps:
                         break
@@ -257,15 +258,13 @@ class NeuralNetwork(object):
             
             saver = tf.train.Saver() #this saving behavior allows you to train multiple versions of the model using the same class
             save_path = saver.save(session, variable_storage_file_name)
-
             return validation_accuracy, step
         
     def test(self, variable_storage_file_name, new_dataset=0, new_labels=0, noise_type=None, noise_mean=None):
         #if new_dataset is 0 and new_labels is 0: uses the test set and labels to predict and score
         #if new_dataset isnt 0 and new_labels isnt 0: uses a new test set to predict
         #if new_dataset isnt 0 None and new_labels isnt 0: uses a new test set and labels to predict and score
-        #important note: new_dataset & new_labels must have same amount of data points as self.test_dataset, self.test_labels
-        #this is an unfortunate truth based on the tensor setup above
+        #important note: new_dataset & new_labels must have same amount of data points as self.test_dataset, self.test_labels.
 
         #Add some noise to test data if applicable
         noisy_dataset = copy.deepcopy(self.test_dataset)
@@ -284,6 +283,7 @@ class NeuralNetwork(object):
             tf.initialize_all_variables().run()
             saver.restore(session, variable_storage_file_name)    
             
+            #Based on the parameters passed into the function, decide what data and what labels to use for testing.
             this_dataset = None
             this_labels = None
             if type(new_dataset) is not int: #checking if it is 0 or if is actual numpy array user inputted data
@@ -292,7 +292,6 @@ class NeuralNetwork(object):
             else:
                 this_dataset = self.test_dataset
                 this_labels = self.test_labels
-
             #Switch to noisy data if applicable
             if noise_type:
                 this_dataset = noisy_dataset

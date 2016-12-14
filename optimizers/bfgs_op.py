@@ -21,8 +21,6 @@ class BfgsOpt(ExternalOptimizerInterface):
     if self.hess is None:
       self.hess = eye
 
-    #print (self.hess.shape)
-
     _, grad = loss_grad_func(current_val)
     delta = - np.matmul(self.hess, grad)
     new_val = current_val + delta

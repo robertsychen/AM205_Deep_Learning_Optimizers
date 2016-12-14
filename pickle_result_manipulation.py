@@ -1,6 +1,9 @@
 import cPickle as pickle
 import numpy as np
 
+#Formats and computes .pkl file statistics in a readable format.
+#Statistics are: accuracy, runtime, number of iterations. These were computed 15 times for each (algorithm, noise type) tuple.
+
 #setting up master results dictionary
 results_master = {}
 for algo in ['gd','adam','hess','cg','bfgs']:
@@ -31,7 +34,7 @@ for algo in ['hess','cg','bfgs']:
         results_master[algo][noise]['acc']['full'] = result1['result'][1][0] + result2['result'][1][0]
         results_master[algo][noise]['iters']['full'] = result1['result'][2][0] + result2['result'][2][0]
 
-#drop problematic cases of hessian-free
+#take care of problematic cases of hessian-free
 for stat in ['time', 'acc', 'iters']:
     results_master['hess']['none'][stat]['full'] = [results_master['hess']['none'][stat]['full'][i] for i in [0,1,2,4,5,6,8,9,10,12,13,14]]
     results_master['hess']['test'][stat]['full'] = [results_master['hess']['test'][stat]['full'][i] for i in [0,1,2,3,4,5,7,9,10,11,12,14]]

@@ -4,8 +4,12 @@ import time
 import numpy as np
 import cPickle as pickle
 
-train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels = get_mnist_data()
+#Automated simulations to record accuracy, runtime, number of iterations. 
+#This is done 15 times for each (algorithm, noise type) tuple.
+#Results save to .pkl files.
+
 #training: 55,000 examples. validation: 5,000 examples. testing: 10,000 examples.
+train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels = get_mnist_data()
 
 optimizer_parameters = {}
 optimizer_parameters['OriginalGradientDescent'] = {'learning_rate': 0.5}
@@ -55,15 +59,14 @@ def run_single_set(num_runs, num_hidden_layers, num_hidden_nodes, auto_terminate
 
 #################################################################
 
-
+#used to run different subsets of the simulations
 number_name = 0
 number_start = 0
 number_end = 44
 
-diff_structure = [[1,256], [1,16]]
+diff_structure = [[1,256], [1,16]] #number of hidden layers and number of hidden nodes
 diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
-#diff_algorithms = ['CustomGradientDescent', 'CustomAdam']
-diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]]
+diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]] #corresponds to 'none', 'test', 'both' noise types
 
 for noise in diff_noises:
   for structure in diff_structure:
@@ -72,7 +75,7 @@ for noise in diff_noises:
         if structure == [1,256]:
           result = run_single_set(10, structure[0], structure[1], 50, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
           print result
-          pickle.dump(result, open("newnewresult" + str(number_name) + ".pkl", "wb"))
+          pickle.dump(result, open("result" + str(number_name) + ".pkl", "wb")) #save to pkl file
       number_name += 1
 
 

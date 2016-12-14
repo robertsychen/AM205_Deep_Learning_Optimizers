@@ -1,5 +1,9 @@
 from tensorflow.examples.tutorials.mnist import input_data
 
+#Pre-process and load MNIST image data.
+
+#training: 55,000 examples. validation: 5,000 examples. testing: 10,000 examples.
+
 def get_mnist_data():
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
     train_dataset = mnist.train.images.reshape((55000,28*28))
