@@ -9,9 +9,6 @@ from optimizers.l_bfgs_op import LBfgsOpt
 from optimizers.adam_op import AdamOpt
 from optimizers.hessian_free_op import HessianFreeOpt
 
-#note: specifically for image classification, can generalize if we deem necessary
-#makes various assumptions about architecture, can alter class as necessary later
-
 class NeuralNetwork(object):
     def __init__(self,
                  image_size, 

@@ -60,17 +60,19 @@ number_name = 0
 number_start = 0
 number_end = 44
 
-diff_structure = [[1,16],[1,256],[5,16]]
-diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
+diff_structure = [[1,256], [1,16]]
+#diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
+diff_algorithms = ['CustomGradientDescent', 'CustomAdam']
 diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]]
 
 for noise in diff_noises:
   for structure in diff_structure:
     for algo in diff_algorithms:
       if number_name >= number_start and number_name <= number_end:
-        result = run_single_set(5, structure[0], structure[1], 50, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
-        print result
-        pickle.dump(result, open("result" + str(number_name) + ".pkl", "wb"))
+        if structure == [1,256]:
+          result = run_single_set(10, structure[0], structure[1], 50, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
+          print result
+          pickle.dump(result, open("newnewresult" + str(number_name) + ".pkl", "wb"))
       number_name += 1
 
 
