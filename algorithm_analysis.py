@@ -61,8 +61,8 @@ number_start = 0
 number_end = 44
 
 diff_structure = [[1,256], [1,16]]
-#diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
-diff_algorithms = ['CustomGradientDescent', 'CustomAdam']
+diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
+#diff_algorithms = ['CustomGradientDescent', 'CustomAdam']
 diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]]
 
 for noise in diff_noises:

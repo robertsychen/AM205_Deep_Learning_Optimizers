@@ -38,6 +38,7 @@ class NeuralNetwork(object):
         self.optimizer_type = optimizer_type #string name of optimizer being used
         self.optimizer_params = optimizer_params #dictionary of any parameters needed to run the given optimizer
         self.is_custom_optimizer = None #whether optimizer is built in or is a custom one based on ExternalOptimizerInterface; filled in below
+        self.validation_accuracy_history = [] #for when we want to save and make a graph of the validation accuracy over time during training
         
         #Set up graph structure.
         self.graph = tf.Graph()
@@ -183,6 +184,8 @@ class NeuralNetwork(object):
             else:
                 verbose_print_freq = 50
 
+        self.validation_accuracy_history = []
+
         def __performance_update_assigner_and_printer(l, predictions, step):
             global previous_update_info
             if step != previous_update_info[0]:
@@ -191,6 +194,8 @@ class NeuralNetwork(object):
                 previous_update_info[1] = l
                 previous_update_info[2] = self.__accuracy(predictions, batch_labels)
                 previous_update_info[3] = self.__accuracy(self.valid_prediction.eval(), self.valid_labels)
+
+                self.validation_accuracy_history.append(previous_update_info[3])
 
                 if verbose and (step % verbose_print_freq == 0):
                     print("Minibatch loss at step %d: %f" % (previous_update_info[0], previous_update_info[1]))
