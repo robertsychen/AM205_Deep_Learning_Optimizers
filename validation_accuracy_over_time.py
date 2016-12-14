@@ -15,6 +15,7 @@ optimizer_parameters['CustomAdam'] = {}
 optimizer_parameters['LBFGS'] = {'max_hist': 1000}
 optimizer_parameters['ConjugateGradient'] = {'learning_rate': 0.0001, 'min_step': 0.02}
 optimizer_parameters['HessianFree'] = {}
+noise_dict = {'both': ['normal', 0.1, 'normal', 0.1], 'test': [None, None, 'normal', 0.1], 'none':[None, None, None, None]}
 
 def get_single_history(num_runs, num_hidden_layers, num_hidden_nodes, num_steps, optimizer_type, optimizer_params=None, noise_type_train=None, noise_mean_train=None, noise_type_test=None, noise_mean_test=None):
 
@@ -36,7 +37,8 @@ def get_single_history(num_runs, num_hidden_layers, num_hidden_nodes, num_steps,
        return network.validation_accuracy_history
 
 diff_algorithms = ['ConjugateGradient', 'HessianFree', 'LBFGS', 'CustomGradientDescent', 'CustomAdam']
-diff_noises = [[None, None, None, None],[None, None, 'normal', 0.1],['normal', 0.1, 'normal', 0.1]]
+#diff_noises = ['none', 'test', 'both']
+diff_noises = ['both']
 
 ####
 
@@ -49,7 +51,7 @@ for noise in diff_noises:
                      print noise
                      print algo
                      print 'Starting ' + str(i)
-                     result = get_single_history(10, 1, 256, steps, algo, optimizer_parameters[algo], noise[0], noise[1], noise[2], noise[3])
+                     result = get_single_history(10, 1, 256, steps, algo, optimizer_parameters[algo], noise_dict[noise][0], noise_dict[noise][1], noise_dict[noise][2], noise_dict[noise][3])
                      print 'Save result '
                      pickle.dump(result, open(algo + str(steps) + noise + str(i) + ".pkl", "wb"))
 
